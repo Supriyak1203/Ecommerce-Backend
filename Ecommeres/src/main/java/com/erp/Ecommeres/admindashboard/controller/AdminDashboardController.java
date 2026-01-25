@@ -3,11 +3,7 @@ package com.erp.Ecommeres.admindashboard.controller;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.erp.Ecommeres.admindashboard.dto.DashboardResponseDTO;
 import com.erp.Ecommeres.admindashboard.dto.RecentOrderDTO;
@@ -19,17 +15,20 @@ import com.erp.Ecommeres.repo.UserRepo;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "*")
+@CrossOrigin("*")
 public class AdminDashboardController {
 
-    @Autowired
-    private UserRepo userRepository;
+    private final UserRepo userRepository;
+    private final ProductRepo productRepository;
+    private final OrderRepo orderRepository;
 
-    @Autowired
-    private ProductRepo productRepository;
-
-    @Autowired
-    private OrderRepo orderRepository;
+    public AdminDashboardController(UserRepo userRepository,
+                                    ProductRepo productRepository,
+                                    OrderRepo orderRepository) {
+        this.userRepository = userRepository;
+        this.productRepository = productRepository;
+        this.orderRepository = orderRepository;
+    }
 
     // ===================== DASHBOARD CARDS =====================
     @GetMapping("/dashboard")
@@ -37,14 +36,17 @@ public class AdminDashboardController {
 
         DashboardResponseDTO response = new DashboardResponseDTO();
 
-        response.setTotalCustomers(userRepository.count());
+        response.setTotalCustomers(userRepository.countByRole("USER"));
         response.setTotalProducts(productRepository.count());
         response.setTotalOrders(orderRepository.count());
-        response.setTotalRevenue(orderRepository.getTotalRevenue());
+
+        // ✅ FIXED REVENUE
+        response.setTotalRevenue(orderRepository.getTotalRevenue1());
 
         return response;
     }
 
+    // ===================== RECENT ORDERS =====================
     @GetMapping("/recent-orders")
     public List<RecentOrderDTO> getRecentOrders() {
 
@@ -55,16 +57,19 @@ public class AdminDashboardController {
                 .map(order -> {
 
                     RecentOrderDTO dto = new RecentOrderDTO();
+
                     dto.setOrderId("#ORD" + order.getId());
 
-                    // ✅ FETCH REAL CUSTOMER NAME
                     String customerName = userRepository
                             .findById(order.getUserId())
-                            .map(User::getFullName)   // ✅ FIXED METHOD NAME
+                            .filter(u -> "USER".equals(u.getRole()))
+                            .map(User::getFullName)
                             .orElse("Unknown User");
 
                     dto.setCustomer(customerName);
+
                     dto.setStatus(mapStatus(order.getStatus()));
+
                     dto.setAmount(order.getTotalPrice());
 
                     return dto;
@@ -72,17 +77,25 @@ public class AdminDashboardController {
                 .collect(Collectors.toList());
     }
 
-
     // ===================== STATUS MAPPING =====================
     private String mapStatus(String status) {
+
         if (status == null) return "Pending";
 
         switch (status.toUpperCase()) {
+
             case "PAID":
             case "COMPLETED":
+            case "DELIVERED":
                 return "Completed";
+
+            case "SHIPPED":
+                return "Shipped";
+
             case "CANCELLED":
                 return "Cancelled";
+
+            case "PLACED":
             default:
                 return "Pending";
         }

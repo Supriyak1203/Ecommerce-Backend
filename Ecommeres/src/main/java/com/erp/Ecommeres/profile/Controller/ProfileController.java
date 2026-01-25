@@ -22,4 +22,6 @@ public class ProfileController {
     public ProfileDTO getProfile(@PathVariable Long userId) {
         return profileService.getProfileByUserId(userId);
     }
+    
+    
 }

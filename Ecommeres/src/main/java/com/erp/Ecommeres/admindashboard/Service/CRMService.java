@@ -29,9 +29,10 @@ public class CRMService {
         this.profileRepo = profileRepo;
     }
 
+    // ✅ ONLY USERS (CUSTOMERS)
     public List<CRMDTO> getAllCustomers() {
 
-        List<User> users = userRepo.findAll();
+        List<User> users = userRepo.findByRole("USER");
         List<CRMDTO> list = new ArrayList<>();
 
         for (User user : users) {
@@ -50,9 +51,7 @@ public class CRMService {
             dto.setMobile(user.getMobileNumber());
 
             dto.setAddress(
-                addressOpt.isPresent()
-                    ? addressOpt.get().getCity()
-                    : null
+                addressOpt.map(Address::getCity).orElse(null)
             );
 
             dto.setGender(profile != null ? profile.getGender() : null);
@@ -60,15 +59,18 @@ public class CRMService {
 
             list.add(dto);
         }
+
         return list;
     }
-    
+
+    // ✅ SEARCH ONLY USERS
     public List<CRMDTO> searchCustomers(String keyword) {
 
         List<User> users =
-                userRepo.findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
-                        keyword, keyword
-                );
+            userRepo.findByRoleAndFullNameContainingIgnoreCaseOrRoleAndEmailContainingIgnoreCase(
+                "USER", keyword,
+                "USER", keyword
+            );
 
         List<CRMDTO> list = new ArrayList<>();
 
@@ -88,9 +90,7 @@ public class CRMService {
             dto.setMobile(user.getMobileNumber());
 
             dto.setAddress(
-                    addressOpt.isPresent()
-                            ? addressOpt.get().getCity()
-                            : null
+                addressOpt.map(Address::getCity).orElse(null)
             );
 
             dto.setGender(profile != null ? profile.getGender() : null);
@@ -98,7 +98,7 @@ public class CRMService {
 
             list.add(dto);
         }
+
         return list;
     }
-
 }

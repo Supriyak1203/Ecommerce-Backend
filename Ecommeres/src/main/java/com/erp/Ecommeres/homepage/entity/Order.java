@@ -14,7 +14,7 @@ public class Order {
 
     // ===== USER & PRODUCT =====
     private Long userId;
-    private String productId;
+    private Long productId;
     private String productName;
     private Integer quantity;
 
@@ -40,8 +40,8 @@ public class Order {
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
-    public String getProductId() { return productId; }
-    public void setProductId(String productId) { this.productId = productId; }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long long1) { this.productId = long1; }
 
     public String getProductName() { return productName; }
     public void setProductName(String productName) { this.productName = productName; }

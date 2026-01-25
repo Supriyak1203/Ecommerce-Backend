@@ -14,18 +14,28 @@ import jakarta.transaction.Transactional;
 
 public interface UserRepo extends JpaRepository<User, Long> {
 
+    // ---------- AUTH / LOGIN ----------
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
 
     boolean existsByMobileNumber(String mobileNumber);
 
+    // ---------- GENERAL SEARCH ----------
     List<User> findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
             String fullName,
             String email
     );
 
-    // ✅ FIXED UPDATE PASSWORD QUERY
+    // ---------- CRM (CUSTOMERS ONLY) ----------
+    List<User> findByRole(String role);
+
+    List<User> findByRoleAndFullNameContainingIgnoreCaseOrRoleAndEmailContainingIgnoreCase(
+            String role1, String fullName,
+            String role2, String email
+    );
+
+    // ---------- PASSWORD UPDATE ----------
     @Modifying
     @Transactional
     @Query("""
@@ -35,4 +45,7 @@ public interface UserRepo extends JpaRepository<User, Long> {
     """)
     void updatePassword(@Param("email") String email,
                         @Param("password") String password);
+    
+    long countByRole(String role);
+
 }
