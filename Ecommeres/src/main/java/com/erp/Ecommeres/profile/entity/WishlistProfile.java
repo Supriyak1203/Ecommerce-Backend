@@ -2,7 +2,6 @@ package com.erp.Ecommeres.profile.entity;
 
 
 
-
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,8 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "profile")
-public class Profile {
+public class WishlistProfile {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,18 +18,20 @@ public class Profile {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "image_url")
-    private String imageUrl;
+    @Column(name = "product_name", nullable = false)
+    private String productName;
 
-    private Integer age;
+    @Column(name = "price")
+    private Double price;
 
-    private String gender;
+    @Column(name = "notes")
+    private String notes;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+ 
     private LocalDateTime createdAt;
 
-    // ===== Getters & Setters =====
+    public WishlistProfile() {}
 
     public Long getId() {
         return id;
@@ -49,28 +49,28 @@ public class Profile {
         this.userId = userId;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public String getProductName() {
+        return productName;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
-    public Integer getAge() {
-        return age;
+    public Double getPrice() {
+        return price;
     }
 
-    public void setAge(Integer age) {
-        this.age = age;
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
-    public String getGender() {
-        return gender;
+    public String getNotes() {
+        return notes;
     }
 
-    public void setGender(String gender) {
-        this.gender = gender;
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public LocalDateTime getCreatedAt() {

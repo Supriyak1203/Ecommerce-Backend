@@ -2,6 +2,7 @@ package com.erp.Ecommeres.homepage.controller;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.erp.Ecommeres.admindashboard.entity.Product;
@@ -21,6 +22,8 @@ public class OrderController {
     private final OrderRepo orderRepo;
     private final AddressRepo addressRepo;
     private final ProductRepo productRepo;
+    
+    
 
     public OrderController(OrderRepo orderRepo,
                            AddressRepo addressRepo,
@@ -29,21 +32,24 @@ public class OrderController {
         this.addressRepo = addressRepo;
         this.productRepo = productRepo;
     }
-
-    // ✅ CASH ON DELIVERY ORDER
     @PostMapping("/cod")
-    public String placeCodOrder(@RequestBody CreateOrderRequestDTO dto) {
+    public ResponseEntity<?> placeCodOrder(@RequestBody CreateOrderRequestDTO dto) {
 
+        if (dto.getUserId() == null ||
+            dto.getProductId() == null ||
+            dto.getQuantity() == null ||
+            dto.getTotalPrice() == null) {
+
+            return ResponseEntity.badRequest().body("Invalid COD request");
+        }
+
+        // ✅ FETCH LATEST ADDRESS BY USER
         Address address = addressRepo
                 .findTopByUserIdOrderByCreatedAtDesc(dto.getUserId())
-                .orElseThrow(() ->
-                        new RuntimeException("Address not found"));
+                .orElseThrow(() -> new RuntimeException("Address not found"));
 
         Product product = productRepo.findById(dto.getProductId())
-                .orElseThrow(() ->
-                        new RuntimeException("Product not found"));
-
-        double totalPrice = product.getPrice() * dto.getQuantity();
+                .orElseThrow(() -> new RuntimeException("Product not found"));
 
         String fullAddress =
                 address.getAddressLine() + ", " +
@@ -52,22 +58,23 @@ public class OrderController {
                 address.getPincode();
 
         Order order = new Order();
+
         order.setUserId(dto.getUserId());
         order.setProductId(product.getId());
         order.setProductName(product.getProductName());
         order.setQuantity(dto.getQuantity());
 
-        order.setTotalPrice(totalPrice);
+        order.setTotalPrice(dto.getTotalPrice());
         order.setPaymentOption("COD");
-
 
         order.setAddress(fullAddress);
         order.setStatus("PLACED");
 
         orderRepo.save(order);
 
-        return "COD_ORDER_PLACED";
+        return ResponseEntity.ok("COD_ORDER_PLACED");
     }
+
 
     // ✅ ADMIN FETCH ALL ORDERS
     @GetMapping

@@ -82,4 +82,6 @@ public class CreateOrderRequestDTO {
     public void setPartnerContact(String partnerContact) {
         this.partnerContact = partnerContact;
     }
+    
+    
 }

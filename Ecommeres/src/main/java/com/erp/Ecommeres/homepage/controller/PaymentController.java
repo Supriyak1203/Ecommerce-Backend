@@ -6,11 +6,10 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import com.erp.Ecommeres.admindashboard.entity.Product;
+import com.erp.Ecommeres.admindashboard.repo.ProductRepo;
 import com.erp.Ecommeres.homepage.dto.CreateOrderRequestDTO;
 import com.erp.Ecommeres.homepage.dto.CreateOrderResponseDTO;
 import com.erp.Ecommeres.homepage.dto.VerifyPaymentDTO;
@@ -22,6 +21,7 @@ import com.razorpay.RazorpayClient;
 
 @RestController
 @RequestMapping("/api/payment")
+@CrossOrigin("*")
 public class PaymentController {
 
     @Value("${razorpay.key.id}")
@@ -32,25 +32,46 @@ public class PaymentController {
 
     private final OrderRepo orderRepo;
     private final AddressRepo addressRepo;
+    private final ProductRepo productRepo;
 
-    public PaymentController(OrderRepo orderRepo, AddressRepo addressRepo) {
-        this.orderRepo = orderRepo;
-        this.addressRepo = addressRepo;
-    }
 
+    public PaymentController(OrderRepo orderRepo,
+            AddressRepo addressRepo,
+            ProductRepo productRepo) {
+this.orderRepo = orderRepo;
+this.addressRepo = addressRepo;
+this.productRepo = productRepo;
+}
+
+    // ==============================
     // ✅ CREATE RAZORPAY ORDER
+    // ==============================
     @PostMapping("/create-order")
-    public CreateOrderResponseDTO createOrder(@RequestBody CreateOrderRequestDTO dto) throws Exception {
-    	Address address = addressRepo
-    	        .findTopByUserIdOrderByCreatedAtDesc(dto.getUserId())
-    	        .orElseThrow(() ->
-    	            new RuntimeException("Address not found for userId: " + dto.getUserId())
-    	        );
+    public CreateOrderResponseDTO createOrder(
+            @RequestBody CreateOrderRequestDTO dto) throws Exception {
 
-        String fullAddress = address.getAddressLine() + ", " +
-                             address.getCity() + ", " +
-                             address.getState() + " - " +
-                             address.getPincode();
+        if (dto.getUserId() == null ||
+            dto.getProductId() == null ||
+            dto.getQuantity() == null ||
+            dto.getTotalPrice() == null ||
+            dto.getTotalPrice() <= 0) {
+
+            throw new RuntimeException("Invalid payment request");
+        }
+
+        Address address = addressRepo
+                .findTopByUserIdOrderByCreatedAtDesc(dto.getUserId())
+                .orElseThrow(() ->
+                        new RuntimeException("Address not found"));
+
+        Product product = productRepo.findById(dto.getProductId())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        String fullAddress =
+                address.getAddressLine() + ", " +
+                address.getCity() + ", " +
+                address.getState() + " - " +
+                address.getPincode();
 
         RazorpayClient client = new RazorpayClient(keyId, keySecret);
 
@@ -59,14 +80,23 @@ public class PaymentController {
         options.put("currency", "INR");
         options.put("receipt", "rcpt_" + System.currentTimeMillis());
 
-        // ✅ FIXED: fully qualified Razorpay Order
         com.razorpay.Order rpOrder = client.orders.create(options);
 
         Order order = new Order();
+
         order.setUserId(dto.getUserId());
+
+        // ✅ PRODUCT DETAILS SAVED
+        order.setProductId(product.getId());
+        order.setProductName(product.getProductName());
+        order.setQuantity(dto.getQuantity());
+
         order.setTotalPrice(dto.getTotalPrice());
         order.setPaymentOption("ONLINE");
+
+        // ✅ ADDRESS SAVED
         order.setAddress(fullAddress);
+
         order.setStatus("CREATED");
         order.setRazorpayOrderId(rpOrder.get("id"));
 
@@ -80,29 +110,52 @@ public class PaymentController {
         );
     }
 
+    // ==============================
     // ✅ VERIFY PAYMENT
+    // ==============================
     @PostMapping("/verify")
-    public String verifyPayment(@RequestBody VerifyPaymentDTO dto) throws Exception {
+    public String verifyPayment(
+            @RequestBody VerifyPaymentDTO dto) throws Exception {
 
         String payload =
-                dto.getRazorpay_order_id() + "|" + dto.getRazorpay_payment_id();
+                dto.getRazorpay_order_id() + "|" +
+                dto.getRazorpay_payment_id();
 
         Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(keySecret.getBytes(), "HmacSHA256"));
+        mac.init(new SecretKeySpec(
+                keySecret.getBytes(),
+                "HmacSHA256"));
 
-        String generatedSignature = Base64.getEncoder()
-                .encodeToString(mac.doFinal(payload.getBytes()));
+        byte[] hash = mac.doFinal(payload.getBytes());
+
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1)
+                hexString.append('0');
+            hexString.append(hex);
+        }
+
+        String generatedSignature = hexString.toString();
 
         Order order = orderRepo
-                .findByRazorpayOrderId(dto.getRazorpay_order_id())
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .findByRazorpayOrderId(
+                        dto.getRazorpay_order_id())
+                .orElseThrow(() ->
+                        new RuntimeException("Order not found"));
 
-        if (generatedSignature.equals(dto.getRazorpay_signature())) {
+        if (generatedSignature
+                .equals(dto.getRazorpay_signature())) {
+
             order.setStatus("PAID");
-            order.setRazorpayPaymentId(dto.getRazorpay_payment_id());
+            order.setRazorpayPaymentId(
+                    dto.getRazorpay_payment_id());
+
             orderRepo.save(order);
             return "PAYMENT_SUCCESS";
+
         } else {
+
             order.setStatus("FAILED");
             orderRepo.save(order);
             return "PAYMENT_FAILED";

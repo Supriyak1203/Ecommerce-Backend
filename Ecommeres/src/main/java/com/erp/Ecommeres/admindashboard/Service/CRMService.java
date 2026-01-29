@@ -40,7 +40,7 @@ public class CRMService {
             Optional<Address> addressOpt =
                     addressRepo.findFirstByUserId(user.getId());
 
-            Profile profile =
+            Optional<Profile> profileOpt =
                     profileRepo.findByUserId(user.getId());
 
             CRMDTO dto = new CRMDTO();
@@ -51,11 +51,11 @@ public class CRMService {
             dto.setMobile(user.getMobileNumber());
 
             dto.setAddress(
-                addressOpt.map(Address::getCity).orElse(null)
+                    addressOpt.map(Address::getCity).orElse(null)
             );
 
-            dto.setGender(profile != null ? profile.getGender() : null);
-            dto.setAge(profile != null ? profile.getAge() : null);
+            dto.setGender(profileOpt.map(Profile::getGender).orElse(null));
+            dto.setAge(profileOpt.map(Profile::getAge).orElse(null));
 
             list.add(dto);
         }
@@ -79,8 +79,9 @@ public class CRMService {
             Optional<Address> addressOpt =
                     addressRepo.findFirstByUserId(user.getId());
 
-            Profile profile =
+            Optional<Profile> profileOpt =
                     profileRepo.findByUserId(user.getId());
+
 
             CRMDTO dto = new CRMDTO();
             dto.setId(user.getId());
@@ -93,8 +94,8 @@ public class CRMService {
                 addressOpt.map(Address::getCity).orElse(null)
             );
 
-            dto.setGender(profile != null ? profile.getGender() : null);
-            dto.setAge(profile != null ? profile.getAge() : null);
+            dto.setGender(profileOpt.map(Profile::getGender).orElse(null));
+            dto.setAge(profileOpt.map(Profile::getAge).orElse(null));
 
             list.add(dto);
         }

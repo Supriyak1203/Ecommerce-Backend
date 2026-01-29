@@ -85,9 +85,19 @@ public class SecurityConfig {
 
                 // ✅ PUBLIC AUTH APIs
                 .requestMatchers("/auth/**").permitAll()
+                
+                .requestMatchers("/uploads/**").permitAll()
 
-                // ✅ ADMIN PROTECTED APIs
-                .requestMatchers("/products/**").hasRole("ADMIN")
+
+             // ✅ PUBLIC PRODUCT VIEWING (HOME PAGE)
+                .requestMatchers(HttpMethod.GET, "/products/**").permitAll()
+
+                // ✅ ADMIN ONLY PRODUCT MANAGEMENT
+                .requestMatchers(HttpMethod.POST, "/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/products/**").hasRole("ADMIN")
+
+                // ✅ ADMIN DASHBOARD APIs
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                 // ✅ EVERYTHING ELSE NEEDS AUTH

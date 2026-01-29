@@ -1,5 +1,7 @@
 package com.erp.Ecommeres.profile.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.erp.Ecommeres.entity.User;
@@ -41,4 +43,30 @@ public class AddressService {
 
         return dto;
     }
+    
+ // GET USER ADDRESSES
+    public List<Address> getAddresses(Long userId) {
+        return addressRepo.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    // DELETE ADDRESS
+    public void deleteAddress(Long id) {
+        addressRepo.deleteById(id);
+    }
+    public AddressResponseDTO updateAddress(Long id, Address updated) {
+
+        Address existing = addressRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Address not found"));
+
+        existing.setAddressLine(updated.getAddressLine());
+        existing.setCity(updated.getCity());
+        existing.setState(updated.getState());
+        existing.setPincode(updated.getPincode());
+       
+
+        addressRepo.save(existing);
+
+        return new AddressResponseDTO();
+    }
+
 }
